@@ -1,12 +1,6 @@
 fastapi
 uvicorn
+vosk
 python-multipart
 requests
-pydantic
 supabase
-transformers
-torch
-whisper   # optional if using OpenAI Whisper locally
-vosk
-
-
