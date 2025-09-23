@@ -7,3 +7,6 @@ supabase
 transformers
 torch
 whisper   # optional if using OpenAI Whisper locally
+vosk
+
+
