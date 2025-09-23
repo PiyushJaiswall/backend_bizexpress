@@ -1,31 +1,27 @@
-from fastapi import FastAPI, UploadFile, File
-from app.models import NoteCreate
-from app.crud import save_note, fetch_user_notes
+from fastapi import FastAPI, File, UploadFile, Form
+import shutil
+import os
 from app.transcription import transcribe_audio
-from app.summarization import generate_summary
-from typing import List
+from app.supabase_client import store_transcript
 
-app = FastAPI(title="Live Meeting Backend API")
+app = FastAPI()
 
-@app.post("/notes/")
-def create_note(note: NoteCreate):
-    result = save_note(note.content, note.type, note.user_email)
-    return {"status": "success", "data": result}
-
-@app.get("/notes/{user_email}")
-def get_notes(user_email: str):
-    notes = fetch_user_notes(user_email)
-    return {"status": "success", "notes": notes}
+UPLOAD_DIR = "uploads"
+os.makedirs(UPLOAD_DIR, exist_ok=True)
 
 @app.post("/transcribe/")
-async def upload_audio(file: UploadFile = File(...)):
-    # Save uploaded file temporarily
-    file_location = f"temp_{file.filename}"
-    with open(file_location, "wb") as f:
-        f.write(await file.read())
+async def transcribe(file: UploadFile = File(...), user_email: str = Form(...)):
+    file_path = os.path.join(UPLOAD_DIR, file.filename)
     
-    # Transcribe and summarize
-    text = transcribe_audio(file_location)
-    summary = generate_summary(text)
+    # Save uploaded file
+    with open(file_path, "wb") as buffer:
+        shutil.copyfileobj(file.file, buffer)
     
-    return {"transcription": text, "summary": summary}
+    try:
+        transcript = transcribe_audio(file_path)
+        store_transcript(user_email, transcript)
+        return {"status": "success", "transcript": transcript}
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+    finally:
+        os.remove(file_path)
