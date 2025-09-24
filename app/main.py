@@ -37,3 +37,15 @@ async def transcribe(file: UploadFile = File(...), user_email: str = Form(...)):
         # Clean up temp file
         if os.path.exists(file_path):
             os.remove(file_path)
+
+@app.get("/reminders/{user_email}")
+async def get_reminders(user_email: str):
+    now = datetime.utcnow().isoformat()
+    response = supabase.table("meeting_schedules") \
+        .select("*") \
+        .eq("user_email", user_email) \
+        .gte("scheduled_time", now) \
+        .order("scheduled_time", desc=False) \
+        .execute()
+
+    return response.data
