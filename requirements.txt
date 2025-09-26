@@ -1,6 +1,8 @@
-fastapi
-uvicorn
-python-multipart
-supabase
-vosk
-requests
+fastapi==0.117.1
+uvicorn==0.37.0
+ffmpeg-python==0.2.0
+supabase==2.20.0
+vosk==0.3.45
+realtime==2.20.0
+python-multipart==0.0.20
+requests==2.32.5
