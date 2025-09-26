@@ -1,51 +1,68 @@
 from fastapi import FastAPI, File, UploadFile, Form
-import shutil
+from fastapi.responses import JSONResponse
 import os
-import subprocess
+import uuid
+import ffmpeg
 from app.transcription import transcribe_audio
 from app.supabase_client import store_transcript
-from datetime import datetime
 
 app = FastAPI(title="BizExpress Backend", version="1.0.0")
 
 UPLOAD_DIR = "uploads"
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 
-def convert_to_wav(input_path: str) -> str:
+def convert_to_wav(input_path: str, output_path: str):
     """
-    Convert any audio file to mono WAV 16kHz using ffmpeg.
-    Returns path to converted WAV.
+    Convert any audio file to WAV, mono, 16kHz PCM using ffmpeg-python
     """
-    base, _ = os.path.splitext(input_path)
-    output_path = f"{base}_converted.wav"
-    cmd = ["ffmpeg", "-y", "-i", input_path, "-ac", "1", "-ar", "16000", output_path]
     try:
-        subprocess.run(cmd, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    except subprocess.CalledProcessError as e:
-        raise Exception(f"FFmpeg conversion failed: {e.stderr.decode()}")
-    return output_path
+        (
+            ffmpeg
+            .input(input_path)
+            .output(output_path, format='wav', ac=1, ar=16000)
+            .overwrite_output()
+            .run(quiet=True)
+        )
+    except ffmpeg.Error as e:
+        raise Exception(f"Failed to convert audio: {e.stderr.decode()}")
 
 @app.get("/")
 async def root():
     return {"status": "ok", "message": "Backend is running"}
 
 @app.post("/transcribe/")
-async def transcribe(file: UploadFile = File(...), user_email: str = Form(...)):
-    file_path = os.path.join(UPLOAD_DIR, file.filename)
-    
+async def transcribe(
+    file: UploadFile = File(...),
+    client_id: str = Form(...),
+    meeting_title: str = Form(...)
+):
     # Save uploaded file
-    with open(file_path, "wb") as buffer:
-        shutil.copyfileobj(file.file, buffer)
+    file_ext = os.path.splitext(file.filename)[1]
+    temp_filename = f"{uuid.uuid4()}{file_ext}"
+    file_path = os.path.join(UPLOAD_DIR, temp_filename)
 
+    with open(file_path, "wb") as f:
+        f.write(await file.read())
+
+    # Convert to WAV mono PCM
+    wav_path = os.path.join(UPLOAD_DIR, f"{uuid.uuid4()}.wav")
     try:
-        # Convert to mono WAV 16kHz
-        wav_path = convert_to_wav(file_path)
+        convert_to_wav(file_path, wav_path)
+    except Exception as e:
+        os.remove(file_path)
+        return JSONResponse(status_code=400, content={"status": "error", "message": str(e)})
 
-        # Transcribe audio
+    # Transcribe audio
+    try:
         transcript = transcribe_audio(wav_path)
 
-        # Store transcript
-        store_transcript(user_email, transcript)
+        # Store in Supabase
+        store_transcript(
+            client_id=client_id,
+            meeting_title=meeting_title,
+            audio_url=None,  # you can replace with actual storage URL if needed
+            transcript_text=transcript
+        )
 
         response = {"status": "success", "transcript": transcript}
 
@@ -53,21 +70,10 @@ async def transcribe(file: UploadFile = File(...), user_email: str = Form(...)):
         response = {"status": "error", "message": str(e)}
 
     finally:
-        # Cleanup uploaded and converted files
+        # Cleanup
         if os.path.exists(file_path):
             os.remove(file_path)
-        if 'wav_path' in locals() and os.path.exists(wav_path):
+        if os.path.exists(wav_path):
             os.remove(wav_path)
 
     return response
-
-@app.get("/reminders/{user_email}")
-async def get_reminders(user_email: str):
-    now = datetime.utcnow().isoformat()
-    response = supabase.table("meeting_schedules") \
-        .select("*") \
-        .eq("user_email", user_email) \
-        .gte("scheduled_time", now) \
-        .order("scheduled_time", desc=False) \
-        .execute()
-    return response.data
