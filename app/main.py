@@ -60,7 +60,7 @@ async def transcribe(
         store_transcript(
             client_id=client_id,
             meeting_title=meeting_title,
-            audio_url=None,  # you can replace with actual storage URL if needed
+            audio_url=None,  # replace with actual storage URL if needed
             transcript_text=transcript
         )
 
