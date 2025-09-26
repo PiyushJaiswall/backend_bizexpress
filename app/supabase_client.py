@@ -1,7 +1,6 @@
-from supabase import create_client
 import os
+from supabase import create_client
 
-# Read credentials from environment variables
 SUPABASE_URL = os.getenv("SUPABASE_URL")
 SUPABASE_KEY = os.getenv("SUPABASE_KEY")
 
@@ -18,7 +17,7 @@ def store_transcript(client_id: str, meeting_title: str, audio_url: str, transcr
         "transcript_text": transcript_text
     }).execute()
 
-    # Check for errors
-    if response.status_code >= 400:
-        raise Exception(f"Failed to store transcript: {response.data}")
+    if response.error:
+        raise Exception(f"Failed to store transcript: {response.error}")
+    
     return response.data
