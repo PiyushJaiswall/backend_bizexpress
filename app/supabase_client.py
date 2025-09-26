@@ -16,8 +16,9 @@ def store_transcript(client_id: str, meeting_title: str, audio_url: str, transcr
         "audio_url": audio_url,
         "transcript_text": transcript_text
     }).execute()
-
-    if response.error:
-        raise Exception(f"Failed to store transcript: {response.error}")
     
-    return response.data
+    # Supabase v2 returns a dict with keys: data, error
+    if response.get("error"):
+        raise Exception(f"Failed to store transcript: {response['error']}")
+    
+    return response.get("data")
