@@ -10,37 +10,42 @@ app = FastAPI(title="BizExpress Backend", version="1.0.0")
 UPLOAD_DIR = "uploads"
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 
+# 🔹 Updated function goes here
 def convert_to_wav(input_path, output_path):
     audio = AudioSegment.from_file(input_path)
-    audio = audio.set_channels(1)
-    audio = audio.set_frame_rate(16000)
-    audio.export(output_path, format="wav")
+    audio = audio.set_channels(1)          # mono
+    audio = audio.set_frame_rate(16000)    # 16 kHz
+    # Force PCM 16-bit encoding
+    audio.export(output_path, format="wav", codec="pcm_s16le")
 
 @app.get("/")
 async def root():
     return {"status": "ok", "message": "Backend is running"}
 
+# 🔹 Updated endpoint already in main.py — just replace it with this
 @app.post("/transcribe/")
 async def transcribe(file: UploadFile = File(...), user_email: str = Form(...)):
     file_path = os.path.join(UPLOAD_DIR, file.filename)
     with open(file_path, "wb") as buffer:
         shutil.copyfileobj(file.file, buffer)
+
     wav_path = file_path + ".wav"
     try:
-        convert_to_wav(file_path, wav_path)
+        convert_to_wav(file_path, wav_path)   # auto convert to PCM
+
         transcript = transcribe_audio(wav_path)
         store_transcript(user_email, transcript)
         response = {"status": "success", "transcript": transcript}
     except Exception as e:
         response = {"status": "error", "message": str(e)}
     finally:
-        # Cleanup
         if os.path.exists(file_path):
             os.remove(file_path)
         if os.path.exists(wav_path):
             os.remove(wav_path)
+
     return response
-    
+
 @app.get("/reminders/{user_email}")
 async def get_reminders(user_email: str):
     now = datetime.utcnow().isoformat()
@@ -52,4 +57,5 @@ async def get_reminders(user_email: str):
         .execute()
 
     return response.data
+
 
