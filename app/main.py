@@ -11,19 +11,19 @@ app = FastAPI(title="BizExpress Backend", version="1.0.0")
 UPLOAD_DIR = "uploads"
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 
-def convert_to_wav(input_path, output_path):
+def convert_to_wav(input_path: str) -> str:
     """
-    Convert any audio file to WAV mono PCM using ffmpeg.
+    Convert any audio file to mono WAV 16kHz using ffmpeg.
+    Returns path to converted WAV.
     """
-    cmd = [
-        "ffmpeg",
-        "-y",             # overwrite if exists
-        "-i", input_path, # input file
-        "-ac", "1",       # mono channel
-        "-ar", "16000",   # 16 kHz sample rate
-        output_path
-    ]
-    subprocess.run(cmd, check=True)
+    base, _ = os.path.splitext(input_path)
+    output_path = f"{base}_converted.wav"
+    cmd = ["ffmpeg", "-y", "-i", input_path, "-ac", "1", "-ar", "16000", output_path]
+    try:
+        subprocess.run(cmd, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    except subprocess.CalledProcessError as e:
+        raise Exception(f"FFmpeg conversion failed: {e.stderr.decode()}")
+    return output_path
 
 @app.get("/")
 async def root():
@@ -32,23 +32,31 @@ async def root():
 @app.post("/transcribe/")
 async def transcribe(file: UploadFile = File(...), user_email: str = Form(...)):
     file_path = os.path.join(UPLOAD_DIR, file.filename)
+    
+    # Save uploaded file
     with open(file_path, "wb") as buffer:
         shutil.copyfileobj(file.file, buffer)
-    
-    wav_path = os.path.splitext(file_path)[0] + ".wav"
 
     try:
-        convert_to_wav(file_path, wav_path)
+        # Convert to mono WAV 16kHz
+        wav_path = convert_to_wav(file_path)
+
+        # Transcribe audio
         transcript = transcribe_audio(wav_path)
+
+        # Store transcript
         store_transcript(user_email, transcript)
+
         response = {"status": "success", "transcript": transcript}
+
     except Exception as e:
         response = {"status": "error", "message": str(e)}
+
     finally:
-        # Cleanup
+        # Cleanup uploaded and converted files
         if os.path.exists(file_path):
             os.remove(file_path)
-        if os.path.exists(wav_path):
+        if 'wav_path' in locals() and os.path.exists(wav_path):
             os.remove(wav_path)
 
     return response
@@ -62,5 +70,4 @@ async def get_reminders(user_email: str):
         .gte("scheduled_time", now) \
         .order("scheduled_time", desc=False) \
         .execute()
-
     return response.data
