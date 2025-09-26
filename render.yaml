@@ -7,7 +7,7 @@ services:
     buildCommand: |
       echo "Installing ffmpeg..."
       apt-get update && apt-get install -y ffmpeg
-      echo "Installing Python requirements..."
+      echo "Installing Python packages..."
       pip install --upgrade pip
       pip install -r requirements.txt
     startCommand: uvicorn app.main:app --host 0.0.0.0 --port ${PORT}
