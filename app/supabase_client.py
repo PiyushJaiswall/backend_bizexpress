@@ -1,37 +1,24 @@
-from supabase import create_client, Client
+from supabase import create_client
 import os
 
-SUPABASE_URL = os.environ.get("SUPABASE_URL")
-SUPABASE_KEY = os.environ.get("SUPABASE_KEY")
+# Read credentials from environment variables
+SUPABASE_URL = os.getenv("SUPABASE_URL")
+SUPABASE_KEY = os.getenv("SUPABASE_KEY")
 
-supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
+supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
 
-
-def store_transcript(
-    user_email: str,
-    transcript: str,
-    meeting_name: str = None,
-    start_time: str = None,
-    end_time: str = None,
-    duration: str = None,
-    file_name: str = None
-):
+def store_transcript(client_id: str, meeting_title: str, audio_url: str, transcript_text: str):
     """
-    Stores meeting transcription and metadata into Supabase.
+    Store a transcript in the 'transcripts' table
     """
-    data = {
-        "user_email": user_email,
-        "transcript": transcript,
-        "meeting_name": meeting_name,
-        "start_time": start_time,
-        "end_time": end_time,
-        "duration": duration,
-        "file_name": file_name
-    }
+    response = supabase.table("transcripts").insert({
+        "client_id": client_id,
+        "meeting_title": meeting_title,
+        "audio_url": audio_url,
+        "transcript_text": transcript_text
+    }).execute()
 
-    response = supabase.table("meeting_transcripts").insert(data).execute()
-    
-    if response.error:
-        print("Error storing transcript:", response.error)
-        return None
+    # Check for errors
+    if response.status_code >= 400:
+        raise Exception(f"Failed to store transcript: {response.data}")
     return response.data
