@@ -2,14 +2,17 @@ services:
   - type: web
     name: backend-bizexpress
     env: python
-    region: oregon   # or choose closer region
+    region: oregon
     plan: free
     buildCommand: |
+      echo "Installing ffmpeg..."
       apt-get update && apt-get install -y ffmpeg
+      echo "Installing Python requirements..."
+      pip install --upgrade pip
       pip install -r requirements.txt
     startCommand: uvicorn app.main:app --host 0.0.0.0 --port ${PORT}
     envVars:
       - key: SUPABASE_URL
-        sync: false   # set this in Render dashboard
+        sync: false
       - key: SUPABASE_KEY
-        sync: false   # set this in Render dashboard
+        sync: false
