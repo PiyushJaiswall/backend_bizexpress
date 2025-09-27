@@ -4,7 +4,7 @@ from datetime import datetime
 import re
 
 # Initialize summarization pipeline
-summarizer = pipeline("summarization", model="facebook/bart-large-cnn")
+summarizer = pipeline("summarization", model="t5-small")
 
 def generate_meeting_from_transcript(transcript_id: str, transcript_text: str):
     """
