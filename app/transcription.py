@@ -3,7 +3,7 @@ import os
 
 # Load the Whisper model. This will download the model on the first run.
 # 'base.en' is a great balance of speed and accuracy for a free tier.
-model = whisper.load_model("base.en")
+model = whisper.load_model("tiny.en")
 
 def transcribe_audio(file_path: str) -> str:
     """
@@ -18,4 +18,5 @@ def transcribe_audio(file_path: str) -> str:
 
     # The transcribed text is in the 'text' key of the result dictionary
     return result.get("text", "").strip()
+
 
