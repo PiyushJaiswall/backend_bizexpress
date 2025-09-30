@@ -1,10 +1,10 @@
 services:
   - type: web
     name: backend-bizexpress
-    env: docker  # Change this to docker
+    env: docker
     region: oregon
     plan: free
-    # buildCommand and startCommand are now handled by the Dockerfile
+    pythonVersion: "3.11" # Add this line
     envVars:
       - key: SUPABASE_URL
         sync: false
