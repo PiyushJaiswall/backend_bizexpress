@@ -1,10 +1,11 @@
 services:
   - type: web
     name: backend-bizexpress
-    env: docker
+    env: docker  # This line is essential
     region: oregon
     plan: free
-    pythonVersion: "3.11" # Add this line
+    # The 'pythonVersion' and 'buildCommand' keys are removed
+    # because the Dockerfile now handles them.
     envVars:
       - key: SUPABASE_URL
         sync: false
