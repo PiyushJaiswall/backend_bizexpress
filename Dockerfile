@@ -1,21 +1,21 @@
-# Use an official Python image.
+# Use a specific, compatible version of Python
 FROM python:3.11.9-slim-bullseye
 
 # Set the working directory
 WORKDIR /app
 
-# Install ffmpeg
+# Install ffmpeg first
 RUN apt-get update && apt-get install -y ffmpeg
 
-# Copy requirements and install Python packages
+# Copy requirements file
 COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy the rest of your application code
+# Install Python packages
+RUN pip install -r requirements.txt
+
+# Copy the rest of the application
 COPY . .
 
-# Expose the port the app runs on
+# Expose the port and run the app
 EXPOSE 10000
-
-# Set the command to run your app
 CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "10000"]
