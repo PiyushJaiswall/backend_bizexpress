@@ -1,14 +1,10 @@
 services:
   - type: web
     name: backend-bizexpress
-    env: python
+    env: docker  # Change this to docker
     region: oregon
     plan: free
-    buildCommand: |
-      apt-get update && apt-get install -y ffmpeg
-      pip install --upgrade pip
-      pip install -r requirements.txt
-    startCommand: uvicorn app.main:app --host 0.0.0.0 --port ${PORT}
+    # buildCommand and startCommand are now handled by the Dockerfile
     envVars:
       - key: SUPABASE_URL
         sync: false
