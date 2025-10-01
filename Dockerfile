@@ -17,5 +17,6 @@ RUN pip install -r requirements.txt
 COPY . .
 
 # Expose the port and run the app
-EXPOSE 10000
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "10000"]
+EXPOSE 7860
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "7860"]
+
